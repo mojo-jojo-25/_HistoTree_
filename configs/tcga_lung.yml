@@ -1,0 +1,42 @@
+data:
+    dataset: "histo"
+    seed: 12321
+    num_classes: 2
+    num_workers: 8
+    feature_path:
+    train_set:   brca_files/train_0.txt
+    val_set :    brca_files/val_0.txt
+    test_set:    brca_files/test_0.txt
+model:
+    embed_dim: 128
+    feature_dim: 1024
+    num_layers: 3
+    arch: linear
+    var_type: fixedlarge
+    ema_rate: 0.9999
+    ema: False
+    node_cluster_num: 20
+    mode: 'kmeans'
+tree:
+    depth: 3
+    proto_size: [1]
+    embed_dim : 128
+    proto_dim : 128
+training:
+    n_epochs: 50
+    snapshot_freq: 1
+    batch_size: 4
+    logging_freq: 1
+    validation_freq: 1
+    batch_logging_freq: 50
+    update_frequency: 100
+    loss: "nll_loss"
+optim:
+    weight_decay: 0.000
+    optimizer: "Adam"
+    beta1: 0.9
+    amsgrad: false
+    eps: 0.00000001
+    grad_clip: None
+    lr_schedule: True
+    min_lr: 0.0
