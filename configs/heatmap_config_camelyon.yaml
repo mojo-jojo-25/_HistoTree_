@@ -6,11 +6,11 @@ exp_arguments:
   # name tag for saving generated figures and assets
   save_exp_code: tcga_LUNG
   # where to save raw asset files
-  raw_save_dir: /home/admin_ofourkioti/PycharmProjects/Histo_tree_data/TCGA_LUNG/heatmaps/vis_results
+  raw_save_dir: /heatmaps/vis_results
   batch_size: 384
 data_arguments:
   # where is data stored; can be a single str path or a dictionary of key, data_dir mapping
-  data_dir: /run/user/1001/gvfs/smb-share:server=rds.icr.ac.uk,share=data/DBI/DUDBI/DYNCESYS/OlgaF/slides/TCGA_LUNG/
+  data_dir: TCGA_LUNG/
   # column name for key in data_dir (if a dict mapping is used)
   data_dir_key: source
   # csv list containing slide_ids (can additionally have seg/patch paramters, class labels, etc.)
