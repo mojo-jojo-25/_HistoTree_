@@ -302,8 +302,7 @@ class HistoTree(object):
                                 concatenated_tensor = torch.stack(tensor_values, dim=1)
                                 numpy_array = concatenated_tensor.cpu().numpy()
                                 numpy_array = np.transpose(np.squeeze(numpy_array))
-                                #normalized_values = normalize(numpy_array, norm='l1')
-                                # filename = os.path.join(self.vis_folder, '{}_distances.npy'.format(
-                                #                names[0][0]))
-                                # with open(filename, 'wb') as f:
-                                #     np.save(f, numpy_array)
+                                filename = os.path.join(self.vis_folder, '{}_distances.npy'.format(
+                                               names[0][0]))
+                                with open(filename, 'wb') as f:
+                                    np.save(f, numpy_array)
