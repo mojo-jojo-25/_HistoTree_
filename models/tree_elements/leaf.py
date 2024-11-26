@@ -24,7 +24,6 @@ class Leaf(Node):
             nn.Sigmoid(),
         )
 
-
     def forward(self, logits, patches, training, **kwargs):
         batch_size = patches.size(0)
 
@@ -55,32 +54,8 @@ class Leaf(Node):
 
         self.dists = logits + tree_logits
 
-        #self.dists = logits + tree_logits
-
         return tree_logits, patches, node_attr
 
-    def explain(self, logits, patches, training, sizes, id, s_matrix, l_distances, r_distances, y, prefix,
-                r_node_id, pool_map,keys,
-                **kwargs):
-        batch_size = patches.size(0)
-
-        node_attr = kwargs.setdefault('attr', dict())
-
-        node_attr.setdefault((self, 'pa'), torch.ones(batch_size, device=patches.device))
-
-        tree_logits = self.pred(patches)
-
-        m = nn.Softmax(dim=1)
-
-        att_matrix = torch.mm(s_matrix[0], tree_logits.squeeze(0))
-        att_matrix = m (att_matrix)
-
-        self.dists = logits + att_matrix
-        self.dists = m(self.dists)
-
-        #self.dists = logits + tree_logits
-
-        return tree_logits, patches, node_attr
 
     @property
     def requires_grad(self) -> bool:

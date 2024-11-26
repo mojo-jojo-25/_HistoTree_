@@ -73,28 +73,28 @@ def parse_config():
         new_config.data.feature_path = args.feature_path
 
 
-    # if not args.test and not args.explain:
-    #     if not args.resume_training:
-    #         if os.path.exists(args.log_path):
-    #             overwrite = False
-    #             if args.ni:
-    #                 overwrite = True
-    #             else:
-    #                 response = input("Folder already exists. Overwrite? (Y/N)")
-    #                 if response.upper() == "Y":
-    #                     overwrite = True
-    #
-    #             if overwrite:
-    #                 shutil.rmtree(args.log_path)
-    #                 shutil.rmtree(tb_path)
-    #                 os.makedirs(args.log_path)
-    #                 if os.path.exists(tb_path):
-    #                     shutil.rmtree(tb_path)
-    #             else:
-    #                 print("Folder exists. Program halted.")
-    #                 sys.exit(0)
-    #         else:
-    #             os.makedirs(args.log_path)
+    if not args.test and not args.explain:
+        if not args.resume_training:
+            if os.path.exists(args.log_path):
+                overwrite = False
+                if args.ni:
+                    overwrite = True
+                else:
+                    response = input("Folder already exists. Overwrite? (Y/N)")
+                    if response.upper() == "Y":
+                        overwrite = True
+
+                if overwrite:
+                    shutil.rmtree(args.log_path)
+                    shutil.rmtree(tb_path)
+                    os.makedirs(args.log_path)
+                    if os.path.exists(tb_path):
+                        shutil.rmtree(tb_path)
+                else:
+                    print("Folder exists. Program halted.")
+                    sys.exit(0)
+            else:
+                os.makedirs(args.log_path)
 
 
         if not args.ni:

@@ -149,8 +149,8 @@ def compute_feats( bags_list, model, data_slide_dir, save_path):
 
         output_path_file = os.path.join(save_path, 'simclr_files', slide_id)
 
-        # if os.path.exists(output_path_file):
-        #     continue
+        if os.path.exists(output_path_file):
+            continue
 
         dataset = Whole_Slide_Bag_FP(file_path=bags_list[i],wsi=wsi, target_patch_size=224, custom_transforms=transform)
         dataloader = DataLoader(dataset=dataset, batch_size=512, collate_fn=collate_features, drop_last=False, shuffle=False)

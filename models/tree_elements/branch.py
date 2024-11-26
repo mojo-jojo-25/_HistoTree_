@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 import os
 from math import sqrt
 from .attention import Attention_without_Classifier, Attention_Gated
-import openslide
 from models.ViT import *
 torch.backends.cudnn.deterministic = True
 
@@ -232,8 +231,8 @@ class Branch(Node):
 
         self.epsilon = 1e-8
 
-        self.gcb_l = GCB_Simple(self.proto_dim)
-        self.gcb_r = GCB_Simple(self.proto_dim)
+        self.gcb_l = GCB_AvgPool(self.proto_dim)
+        self.gcb_r = GCB_AvgPool(self.proto_dim)
 
         self.max_score = float('-inf')
         self.proto_size = proto_size
@@ -252,8 +251,6 @@ class Branch(Node):
             Q = self.q(patches)
 
             proto = ps.expand(batch_size, 20, self.embed_dim)
-
-            #proto = self.w(proto)
 
             A = torch.bmm(Q, proto.permute(0, 2, 1))/torch.sqrt(torch.tensor(Q.shape[1], dtype=torch.float32, device='cuda'))
 

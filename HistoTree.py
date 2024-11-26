@@ -1,29 +1,19 @@
 import logging
 import time
-import gc
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.utils.data as data
-from tqdm import tqdm
 import os
-from sklearn.metrics import roc_auc_score, precision_score, recall_score, f1_score
-from helper import Trainer, Evaluator, collate
-from utils.training_utils import EarlyStopper, get_optimizer, get_grad_norm, SoftTargetCrossEntropy, LabelSmoothingCrossEntropy
+from sklearn.metrics import roc_auc_score,f1_score
+from helper import Trainer, Evaluator
+from utils.training_utils import EarlyStopper
 from models.GraphTransformer import GraphTree
 from helper import collate
-import pandas as pd
 from utils.dataset import GraphDataset, preparefeatureLabel
-from timm.utils import AverageMeter
-import torchmetrics
 import random
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import normalize
-from copy import deepcopy
 import itertools
-import torch.nn.functional as F
-
 plt.style.use('ggplot')
 
 
@@ -273,7 +263,7 @@ class HistoTree(object):
 
     def explain(self):
 
-        config = self.config
+
         model = self.model
 
         os.makedirs(self.vis_folder, exist_ok=True)

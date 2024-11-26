@@ -1,26 +1,13 @@
-import sys
 import os
-import torch
-import random
-import numpy as np
 from .tree_elements import *
-from torch.autograd import Variable
-from torch.nn.parameter import Parameter
-import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.cluster import KMeans, MiniBatchKMeans
-import torch.optim as optim
-import matplotlib.pyplot as plt
-from nystrom_attention import NystromAttention
-from utils.training_utils import get_cam_1d
 from .ViT import *
 from .gcn import GCNBlock
 from sklearn.decomposition import PCA
-from torch_geometric.nn import GCNConv, DenseGraphConv, dense_mincut_pool
-from sklearn.feature_selection import VarianceThreshold
+from torch_geometric.nn import dense_mincut_pool
 from torch.nn import Linear
-from models.tree_elements.attention import Attention_with_Classifier, Attention2
-from torch_geometric.nn import TGNMemory, TransformerConv
+
 
 
 class Classifier(nn.Module):
