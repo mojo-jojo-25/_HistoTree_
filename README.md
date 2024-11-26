@@ -1,6 +1,5 @@
 # **HistoTree**
 
-## **Overview**
 **HistoTree** is a framework designed for handling and analyzing whole slide images (WSIs) in a hierarchical manner,  
  leveraging patch-based features and a tree-like structure for classification tasks.  
  This README outlines the dataset organization, patch feature extraction, training, and inference processes.
