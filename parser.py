@@ -15,35 +15,34 @@ import random
 torch.set_printoptions(sci_mode=False)
 class Options():
     def __init__(self):
-        parser = argparse.ArgumentParser(description=globals()["__doc__"])
+        self.parser = argparse.ArgumentParser(description=globals()["__doc__"])
 
-        parser.add_argument(
+        self.parser.add_argument(
             "--config", type=str, required=True, help="Path to the config file"
         )
-        parser.add_argument('--device', type=int, default=0, help='GPU device id')
-        parser.add_argument("--seed", type=int, default=12321, help="Random seed")
-        parser.add_argument("--exp", type=str, default="exp", help="Path for saving running related data.")
-        parser.add_argument("--feature_path", type=str, default=None, help="This argument will overwrite the dataroot in the config if it is not None.")
-        parser.add_argument("--verbose",type=str,default="info",help="Verbose level: info | debug | warning | critical")
-        parser.add_argument("--eval_best",action="store_true",help="Evaluate by best model during training, instead of the ckpt stored at the last epoch")
-        parser.add_argument("--ni",action="store_true",help="No interaction. Suitable for Slurm Job launcher",)
-        parser.add_argument('--n_class', type=int, default=2, help='classification classes')
-        parser.add_argument('--model_path', type=str, help='path to trained model')
-        parser.add_argument('--log_path', type=str, help='path to log files')
-        parser.add_argument('--task_name', type=str, help='task name for naming saved model files and log files')
-        parser.add_argument('--train', action='store_true', default=False, help='train only')
-        parser.add_argument('--test', action='store_true', default=False, help='test only')
-        parser.add_argument('--explain', action='store_true', default=False, help='explain')
-        parser.add_argument('--batch_size', type=int, default=6,help='batch size for origin global image (without downsampling)')
-        parser.add_argument('--lr', type=float, default=1e-3, help='learning rate')
-        parser.add_argument('--train_set', type=str, default= 'lung_files/train_0.txt')
-        parser.add_argument('--val_set', type=str, default = 'lung_files/val_0.txt')
-        parser.add_argument('--depth', type=int, default=3, help='depth')
-        parser.add_argument('--vis_folder', type=str, default='test')
-        parser.add_argument('--n_epochs', type=int, default=50)
-        parser.add_argument('--dataset', type=str, help='path to log files')
-
-        self.parser = parser
+        self.parser.add_argument('--device', type=int, default=0, help='GPU device id')
+        self.parser.add_argument("--seed", type=int, default=12321, help="Random seed")
+        self.parser.add_argument("--exp", type=str, default="exp", help="Path for saving running related data.")
+        self.parser.add_argument("--feature_path", type=str, default=None, help="This argument will overwrite the dataroot in the config if it is not None.")
+        self.parser.add_argument("--verbose",type=str,default="info",help="Verbose level: info | debug | warning | critical")
+        self.parser.add_argument("--eval_best",action="store_true",help="Evaluate by best model during training, instead of the ckpt stored at the last epoch")
+        self.parser.add_argument("--ni",action="store_true",help="No interaction. Suitable for Slurm Job launcher",)
+        self.parser.add_argument('--n_class', type=int, default=2, help='classification classes')
+        self.parser.add_argument('--model_path', type=str, help='path to trained model')
+        self.parser.add_argument('--log_path', type=str, help='path to log files')
+        self.parser.add_argument('--task_name', type=str, help='task name for naming saved model files and log files')
+        self.parser.add_argument('--train', action='store_true', default=False, help='train only')
+        self.parser.add_argument('--test', action='store_true', default=False, help='test only')
+        self.parser.add_argument('--explain', action='store_true', default=False, help='explain')
+        self.parser.add_argument('--batch_size', type=int, default=6, help='batch size for origin global image (without downsampling)')
+        self.parser.add_argument('--lr', type=float, default=1e-3, help='learning rate')
+        self.parser.add_argument('--train_set', type=str, default = 'train_0.txt')
+        self.parser.add_argument('--val_set', type=str, default = 'val_0.txt')
+        self.parser.add_argument('--depth', type=int, default=3, help ='depth')
+        self.parser.add_argument('--vis_folder', type=str, default ='/home/admin_ofourkioti/PycharmProjects/Histo_tree_data/TCGA_RCC/heatmaps/test')
+        self.parser.add_argument('--n_epochs', type=int, default = 50)
+        self.parser.add_argument('--dataset', type=str, help ='path to log files')
+        self.parser.add_argument('--task', type=str, help ='path to log files', default='classification')
 
     def parse(self):
         args = self.parser.parse_args()
@@ -74,7 +73,6 @@ def parse_config():
 
 
     if not args.test and not args.explain:
-        if not args.resume_training:
             if os.path.exists(args.log_path):
                 overwrite = False
                 if args.ni:
@@ -97,20 +95,20 @@ def parse_config():
                 os.makedirs(args.log_path)
 
 
-        if not args.ni:
+    if not args.ni:
             new_config.tb_logger = tb.SummaryWriter(log_dir=tb_path)
-        else:
+    else:
             new_config.tb_logger = None
         # setup logger
-        level = getattr(logging, args.verbose.upper(), None)
-        if not isinstance(level, int):
-            raise ValueError("level {} not supported".format(args.verbose))
+    level = getattr(logging, args.verbose.upper(), None)
+    if not isinstance(level, int):
+        raise ValueError("level {} not supported".format(args.verbose))
 
         handler1 = logging.StreamHandler()
         handler2 = logging.FileHandler(os.path.join(args.log_path, "{}.txt".format(args.task_name)))
         formatter = logging.Formatter(
-            "%(levelname)s - %(filename)s - %(asctime)s - %(message)s"
-        )
+                "%(levelname)s - %(filename)s - %(asctime)s - %(message)s"
+            )
         handler1.setFormatter(formatter)
         handler2.setFormatter(formatter)
         logger = logging.getLogger()
@@ -120,22 +118,22 @@ def parse_config():
 
     else:
 
-        level = getattr(logging, args.verbose.upper(), None)
-        if not isinstance(level, int):
-            raise ValueError("level {} not supported".format(args.verbose))
+            level = getattr(logging, args.verbose.upper(), None)
+            if not isinstance(level, int):
+                raise ValueError("level {} not supported".format(args.verbose))
 
-        handler1 = logging.StreamHandler()
-        # saving test metrics to a .txt file
-        handler2 = logging.FileHandler(os.path.join(args.log_path, "testmetrics.txt"))
-        formatter = logging.Formatter(
-            "%(levelname)s - %(filename)s - %(asctime)s - %(message)s"
-        )
-        handler1.setFormatter(formatter)
-        handler2.setFormatter(formatter)
-        logger = logging.getLogger()
-        logger.addHandler(handler1)
-        logger.addHandler(handler2)
-        logger.setLevel(level)
+            handler1 = logging.StreamHandler()
+            # saving test metrics to a .txt file
+            handler2 = logging.FileHandler(os.path.join(args.log_path, "testmetrics.txt"))
+            formatter = logging.Formatter(
+                "%(levelname)s - %(filename)s - %(asctime)s - %(message)s"
+            )
+            handler1.setFormatter(formatter)
+            handler2.setFormatter(formatter)
+            logger = logging.getLogger()
+            logger.addHandler(handler1)
+            logger.addHandler(handler2)
+            logger.setLevel(level)
 
     return new_config, logger
 

@@ -91,14 +91,14 @@ def get_default_cmap(n=32):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='HistoTree')
-    parser.add_argument('--save_exp_code', type=str, default='test')
+    parser.add_argument('--save_exp_code', type=str, default='surv_rcc')
     parser.add_argument('--overlap', type=float, default=None)
-    parser.add_argument('--path_file', type=str, default='lung_files/test_0.txt', help='')
+    parser.add_argument('--path_file', type=str, default='survival_rcc_files/val_0.txt', help='')
     parser.add_argument('--path_WSI', type=str, default='', help='')
     parser.add_argument('--path_graph', type=str,
-                        default= '', help='')
+                        default= 'graphs/simclr_files/', help='')
     parser.add_argument('--vis_folder', type=str,
-                        default= '/', help='')
+                        default= 'surv_rcc/', help='')
     parser.add_argument('--config_file', type=str,
                         default='configs/heatmap_config_camelyon.yaml', help='')
 
@@ -107,7 +107,7 @@ if __name__ == '__main__':
     path_graph = args.path_graph
     vis_folder = args.vis_folder
 
-    filenames = pd.read_csv(args.path_file, sep='\t', names=['filename', 'label'])
+    filenames = pd.read_csv(args.path_file, sep=' ', names=['filename', 'label', 'survival_days' ,'c_event' ])
 
 
     config_path = os.path.join('heatmaps/configs', args.config_file)
@@ -166,8 +166,7 @@ if __name__ == '__main__':
                          'use_center_shift': heatmap_args.use_center_shift}
     attentions_scores = []
     for ind in filenames.index:
-        if ind == 1:
-            break
+
         slide_name = filenames['filename'][ind]
         slide_label = filenames['label'][ind]
         if data_args.slide_ext not in slide_name:
@@ -176,18 +175,15 @@ if __name__ == '__main__':
 
         slide_id = slide_name.replace(data_args.slide_ext, '')
 
+        slide_path = os.path.join(data_args.data_dir, slide_id + '.svs')
         if isinstance(data_args.data_dir, str):
             slide_path = os.path.join(data_args.data_dir, slide_name)
-
 
         r_slide_save_dir = os.path.join(exp_args.raw_save_dir, exp_args.save_exp_code, slide_id)
         os.makedirs(r_slide_save_dir, exist_ok=True)
 
-
         if os.path.exists(os.path.join(r_slide_save_dir, '{}_scores.png'.format(slide_id))):
-                        continue
-
-
+                                continue
 
         mask_file = os.path.join(r_slide_save_dir, slide_id + '_mask.pkl')
 
@@ -266,9 +262,10 @@ if __name__ == '__main__':
                       'custom_downsample': patch_args.custom_downsample, 'level': patch_args.patch_level,
                       'use_center_shift': heatmap_args.use_center_shift}
 
-
         probs = np.load(os.path.join(vis_folder, '{}_distances.npy'.format(slide_id)))
-        labels = np.argmax(probs, axis=1)
+
+
+        labels = np.argmax(probs, axis=0)
 
         mask_path = os.path.join(r_slide_save_dir, '{}_mask.jpg'.format(slide_id))
         if vis_params['vis_level'] < 0:
@@ -278,40 +275,44 @@ if __name__ == '__main__':
         mask = wsi_object.visWSI(**vis_params, number_contours=False, annot_display=False)
         mask.save(mask_path)
 
-        heatmap_1 = drawHeatmap(scores, coords, slide_path, wsi_object=wsi_object, cmap=heatmap_args.cmap,
+        heatmap_1 = drawHeatmap(scores, coords,
+                                slide_path,
+                                wsi_object=wsi_object,
+                                cmap=heatmap_args.cmap,
                                 alpha=heatmap_args.alpha,
-                                use_holes=True, binarize=False, vis_level=-1, blank_canvas=False,
-                                thresh=-1, patch_size=vis_patch_size, convert_to_percentiles=True)
-
+                                blur = False,
+                                use_holes=True,
+                                binarize=False,
+                                vis_level=-1,
+                                blank_canvas=False,
+                                thresh=-1,
+                                patch_size=vis_patch_size,
+                                convert_to_percentiles = True)
 
         heatmap_1.save(os.path.join(r_slide_save_dir, '{}_att.tiff'.format(slide_id)), format='TIFF')
 
-
+        label2color_dict = get_default_cmap(16)
         heatmap_1 = drawCatHeatmap(labels, coords,
                                 label2color_dict,
                                 slide_path,
                                 wsi_object = wsi_object,
-                                alpha=heatmap_args.alpha,
-                                use_holes=True,
-                                vis_level=-1,
+                                alpha = heatmap_args.alpha,
+                                use_holes = True,
+                                vis_level = -1,
                                 blur = False,
-                                blank_canvas= True,
+                                blank_canvas = True,
                                 patch_size = vis_patch_size)
 
         heatmap_1.save(os.path.join(r_slide_save_dir, '{}_proto.tiff'.format(slide_id)), format='TIFF')
 
-
-
-        label2color_dict = get_default_cmap(15)
-        num_prototypes = probs.shape[1]
-        top_k = 100
-
-
+        num_prototypes = probs.shape[0]
+        top_k = 50
 
         for proto_id in range(num_prototypes):
             proto_indices = np.where(labels == proto_id)[0]
 
-            proto_probs = probs[proto_indices, proto_id]
+            proto_probs = probs[ proto_id, proto_indices ]
+
             num_to_select = min(top_k, len(proto_indices))
 
             top_indices = proto_indices[np.argsort(proto_probs)[::-1][:num_to_select]]
@@ -319,13 +320,13 @@ if __name__ == '__main__':
             for idx, patch_idx in enumerate(top_indices):
                     output_data = []
                     s_coord = coords[patch_idx]
-                    s_prob = probs[patch_idx, proto_id]
+                    s_prob = probs[proto_id , patch_idx]
 
                     proto_indices = np.where(labels == proto_id)[0]
 
-                    patch = wsi_object.wsi.read_region(tuple(s_coord), patch_args.patch_level, (patch_args.patch_size,
-                                                                                                patch_args.patch_size)).convert('RGB')
-
+                    patch = wsi_object.wsi.read_region(tuple(s_coord), patch_args.patch_level,
+                                                       (patch_args.patch_size,
+                                                        patch_args.patch_size)).convert('RGB')
 
                     proto_slide_save_dir = os.path.join(r_slide_save_dir, f'prototype_{proto_id}')
                     os.makedirs(proto_slide_save_dir, exist_ok=True)
@@ -345,7 +346,6 @@ if __name__ == '__main__':
         max_contrib = 1.0  # Maximum value for the most active prototype
         active_mask = average_contributions > 0  # Identify active prototypes
 
-
         if np.any(active_mask):  # Check if there are any active prototypes
             active_contributions = average_contributions[active_mask]
 
@@ -353,7 +353,6 @@ if __name__ == '__main__':
                                    (max_contrib - min_contrib) / (
                                                active_contributions.max() - active_contributions.min())
             average_contributions[active_mask] = scaled_contributions
-
 
         epsilon = 1e-6
         average_contributions = np.where(average_contributions == 0, epsilon, average_contributions)
@@ -377,9 +376,9 @@ if __name__ == '__main__':
         X = X.cpu()
 
         probs = np.load(os.path.join(vis_folder, '{}_distances.npy'.format(slide_id)))
-        labels = np.argmax(probs, axis=1)
+        labels = np.argmax(probs, axis=0)
 
-        num_prototypes = probs.shape[1]
+        num_prototypes = probs.shape[0]
         top_k = 50
 
         all_features = []
@@ -389,7 +388,7 @@ if __name__ == '__main__':
         for proto_id in range(num_prototypes):
             proto_indices = np.where(labels == proto_id)[0]
 
-            proto_probs = probs[proto_indices, proto_id]
+            proto_probs = probs[proto_id, proto_indices]
             num_to_select = min(top_k, len(proto_indices))
 
             top_indices = proto_indices[np.argsort(proto_probs)[::-1][:num_to_select]]
@@ -399,6 +398,8 @@ if __name__ == '__main__':
             all_prototype_labels.extend([proto_id] * len(top_indices))
 
         all_features = np.vstack(all_features)
+
+
         tsne = TSNE(n_components=2, perplexity=30, learning_rate=300)
         X_tsne = tsne.fit_transform(all_features)
 

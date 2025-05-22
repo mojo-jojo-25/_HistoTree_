@@ -50,15 +50,15 @@ python parser.py \
     --dataset lung \            		# Dataset name (e.g., breast, lung, rcc)
     --n_class 2 \                 		# Number of classes in the dataset
     --config configs/tcga_lung.yml \  		# Configuration file path
-    --task task_name \ # Task name
+    --task_name task_name \ # Task name
     --train \                    		# Flag to indicate training mode
     --train_set lung_files/train_0.txt \  	# Training set file
     --val_set lung_files/val_0.txt \      	# Validation set file
     --feature_path feat_dir \     		# Path to extracted features
     --ni \                        		# Flag for no user interaction (optional)
-    --depth 4 \                   		# Depth of the model/tree
     --batch_size 8 \              		# Batch size for training
-    --exp exp                    		# Experiment folder
+    --exp exp     \                   		# Experiment folder
+    --task survival                     #for a survival task
 ```
 
 ## Inference
@@ -71,11 +71,11 @@ python parser.py --feature_path feat_dir \                     # Directory conta
     --val_set "lung_files/test_0.txt" \                        # Path to the test set file
     --task_name "task_name" \                                    # Name of the task to execute
     --batch_size 1 \                                           # Batch size for testing
-    --test \                                                   # Run the script in test mode
-    --depth 4 \                                                # Depth of the model/tree
+    --test \                                                   # Run the script in test mode                                         # Depth of the model/tree
     --config configs/tcga_lung.yml \                           # Path to the configuration file
     --ni \                                                     # Flag for no user interaction (optional)
     --vis_folder "test_folder" \                               # Directory for saving visualization outputs
+    --task survival                     #for a survival task
 ```
 
 
@@ -92,12 +92,11 @@ python parser.py --feature_path feat_dir \
     --task_name "task_name" \
     --batch_size 1 \
     --explain \
-    --depth 4 \
     --config configs/tcga_lung.yml \
     --ni \
     --vis_folder "test_folder" \
     --n_class 2 \
-    --dataset lung
+    --task survival                  
 ```
 
 
