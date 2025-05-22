@@ -1,17 +1,10 @@
 from __future__ import print_function, division
-import os
-import torch
+
 import numpy as np
 import pandas as pd
-import math
-import re
-import pdb
-import pickle
-
-from torch.utils.data import Dataset, DataLoader, sampler
-from torchvision import transforms, utils, models
-import torch.nn.functional as F
-
+import cv2
+from torch.utils.data import Dataset
+from torchvision import transforms
 from PIL import Image
 import h5py
 
@@ -93,6 +86,53 @@ class Whole_Slide_Bag(Dataset):
 		return img, coord
 
 
+def isBlackPatch(img_np, rgbThresh=20, percentage=0.40):
+    gray = np.mean(img_np, axis=-1)  # Convert to grayscale
+    black_pixels = np.sum(gray < rgbThresh)  # Count pixels below threshold
+    return (black_pixels / gray.size) >= percentage  # Return True if enough pixels are black
+
+
+def isWhitePatch(img_np, satThresh=200, percentage=0.90):
+    gray = np.mean(img_np, axis=-1)
+    white_pixels = np.sum(gray > satThresh)
+    return (white_pixels / gray.size) >= percentage
+
+
+def reinhard_normalization(img, ref_means=[146, 127, 132], ref_stds=[26, 14, 19]):
+	"""
+    Apply Reinhard color normalization to an image.
+
+    Args:
+        img: Input image (PIL or NumPy).
+        ref_means: Reference means for LAB color space.
+        ref_stds: Reference standard deviations for LAB color space.
+
+    Returns:
+        Normalized image as NumPy array.
+    """
+	# Convert image to NumPy array if it's a PIL image
+	if not isinstance(img, np.ndarray):
+		img = np.array(img)
+
+	# Convert RGB to LAB
+	img_lab = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
+
+	# Compute mean and standard deviation of the image in LAB space
+	img_means, img_stds = cv2.meanStdDev(img_lab)
+
+	# Normalize each channel
+	norm_img = np.zeros_like(img_lab, dtype=np.float32)
+	for i in range(3):  # LAB has 3 channels
+		norm_img[..., i] = ((img_lab[..., i] - img_means[i]) / img_stds[i]) * ref_stds[i] + ref_means[i]
+
+	# Clip values to valid LAB range
+	norm_img = np.clip(norm_img, 0, 255).astype(np.uint8)
+
+	# Convert back to RGB
+	norm_img = cv2.cvtColor(norm_img, cv2.COLOR_LAB2RGB)
+
+	return norm_img
+
 class Whole_Slide_Bag_FP(Dataset):
 	def __init__(self,
 				 file_path,
@@ -121,8 +161,17 @@ class Whole_Slide_Bag_FP(Dataset):
 
 		with h5py.File(self.file_path, "r") as f:
 			dset = f['coords']
-			self.patch_level = f['coords'].attrs['patch_level']
-			self.patch_size = f['coords'].attrs['patch_size']
+
+			if 'coords' in f:
+					dset = f['coords']
+					print("Dataset found:", dset)
+					print("Available attributes:", list(dset.attrs.keys()))
+			else:
+					print("Dataset 'coords' not found in the file.")
+
+
+			self.patch_level = 0
+			self.patch_size = 224
 			self.length = len(dset)
 			if target_patch_size > 0:
 				self.target_patch_size = (target_patch_size,) * 2
@@ -147,14 +196,25 @@ class Whole_Slide_Bag_FP(Dataset):
 		print('transformations: ', self.roi_transforms)
 
 	def __getitem__(self, idx):
-		with h5py.File(self.file_path, 'r') as hdf5_file:
-			coord = hdf5_file['coords'][idx]
-		img = self.wsi.read_region(coord, self.patch_level, (self.patch_size, self.patch_size)).convert('RGB')
+		while True:
+			with h5py.File(self.file_path, 'r') as hdf5_file:
+				coord = hdf5_file['coords'][idx]
+			img = self.wsi.read_region(coord, self.patch_level, (self.patch_size, self.patch_size)).convert('RGB')
 
-		if self.target_patch_size is not None:
-			img = img.resize(self.target_patch_size)
-		img = self.roi_transforms(img).unsqueeze(0)
-		return img, coord
+			img_np = np.array(img)
+			# If the patch is black or white, try the next index
+			if isBlackPatch(img_np, rgbThresh=20):
+				print ('black')
+				idx = (idx + 1) % len(self)  # Move to the next index, wrap around if needed
+				continue
+
+			img_np = reinhard_normalization(img_np)
+
+			img = Image.fromarray(img_np)
+			if self.target_patch_size is not None:
+				img = img.resize(self.target_patch_size)
+			img = self.roi_transforms(img).unsqueeze(0)
+			return img, coord
 
 
 class Whole_Slide_Bag_FP_LH(Dataset):

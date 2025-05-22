@@ -6,11 +6,11 @@ exp_arguments:
   # name tag for saving generated figures and assets
   save_exp_code: tcga_LUNG
   # where to save raw asset files
-  raw_save_dir: /heatmaps/vis_results
+  raw_save_dir:
   batch_size: 384
 data_arguments:
   # where is data stored; can be a single str path or a dictionary of key, data_dir mapping
-  data_dir: TCGA_LUNG/
+  data_dir:
   # column name for key in data_dir (if a dict mapping is used)
   data_dir_key: source
   # csv list containing slide_ids (can additionally have seg/patch paramters, class labels, etc.)
@@ -25,7 +25,7 @@ data_arguments:
     LUSC: 1
 patching_arguments:
   # arguments for patching
-  patch_size: 256
+  patch_size: 224
   overlap: 0
   patch_level: 1
   custom_downsample: 1

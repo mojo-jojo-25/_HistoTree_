@@ -15,6 +15,7 @@ class Leaf(Node):
         self.proto_dim = embed_dim
         self.pred = nn.Linear(self.proto_dim, num_classes)
 
+
         self.norm_o = nn.LayerNorm(num_classes)
 
         self.attention_head = nn.Sequential(
@@ -42,9 +43,13 @@ class Leaf(Node):
         return self(logits, patches, **kwargs)
 
     def explain_internal(self, logits, patches, training, sizes, id, s_matrix, l_distances, r_distances, y, prefix,
-                r_node_id, pool_map,keys,
+                r_node_id, pool_map,keys={},
                 **kwargs):
         batch_size = patches.size(0)
+
+        out_map = kwargs['leaf_out_map']
+
+        node_id = out_map[self.index]
 
         node_attr = kwargs.setdefault('attr', dict())
 
@@ -54,8 +59,13 @@ class Leaf(Node):
 
         self.dists = logits + tree_logits
 
-        return tree_logits, patches, node_attr
+        value = torch.mean(self.dists , dim=2)
 
+        keys[node_id] = value.squeeze(0)
+
+        #self.dists = logits + tree_logits
+
+        return tree_logits, patches, node_attr
 
     @property
     def requires_grad(self) -> bool:
