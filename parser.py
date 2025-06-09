@@ -39,7 +39,7 @@ class Options():
         self.parser.add_argument('--train_set', type=str, default = 'train_0.txt')
         self.parser.add_argument('--val_set', type=str, default = 'val_0.txt')
         self.parser.add_argument('--depth', type=int, default=3, help ='depth')
-        self.parser.add_argument('--vis_folder', type=str, default ='/home/admin_ofourkioti/PycharmProjects/Histo_tree_data/TCGA_RCC/heatmaps/test')
+        self.parser.add_argument('--vis_folder', type=str, default ='heatmaps/test')
         self.parser.add_argument('--n_epochs', type=int, default = 50)
         self.parser.add_argument('--dataset', type=str, help ='path to log files')
         self.parser.add_argument('--task', type=str, help ='path to log files', default='classification')
