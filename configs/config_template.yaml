@@ -4,11 +4,11 @@ exp_arguments:
   # number of classes
   n_classes: 2
   # name tag for saving generated figures and assets
-  save_exp_code: smp_raw_example
+  save_exp_code:
   # where to save raw asset files
-  raw_save_dir: heatmaps/heatmap_raw_results
+  raw_save_dir:
   # where to save final heatmaps
-  production_save_dir: heatmaps/heatmap_production_results
+  production_save_dir:
   batch_size: 384
 data_arguments: 
   # where is data stored; can be a single str path or a dictionary of key, data_dir mapping
@@ -16,7 +16,7 @@ data_arguments:
   # column name for key in data_dir (if a dict mapping is used)
   data_dir_key: source
   # csv list containing slide_ids (can additionally have seg/patch paramters, class labels, etc.)
-  process_list: chris_example.csv
+  process_list:
   # preset file for segmentation/patching
   preset: presets/bwh_biopsy.csv
   # file extention for slides
