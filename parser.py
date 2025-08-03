@@ -36,10 +36,10 @@ class Options():
         self.parser.add_argument('--explain', action='store_true', default=False, help='explain')
         self.parser.add_argument('--batch_size', type=int, default=6, help='batch size for origin global image (without downsampling)')
         self.parser.add_argument('--lr', type=float, default=1e-3, help='learning rate')
-        self.parser.add_argument('--train_set', type=str, default = 'train_0.txt')
-        self.parser.add_argument('--val_set', type=str, default = 'val_0.txt')
+        self.parser.add_argument('--train_set', type=str, default = 'lung_files/train_0.txt')
+        self.parser.add_argument('--val_set', type=str, default = 'lung_files/val_0.txt')
         self.parser.add_argument('--depth', type=int, default=3, help ='depth')
-        self.parser.add_argument('--vis_folder', type=str, default ='heatmaps/test')
+        self.parser.add_argument('--vis_folder', type=str, default ='test')
         self.parser.add_argument('--n_epochs', type=int, default = 50)
         self.parser.add_argument('--dataset', type=str, help ='path to log files')
         self.parser.add_argument('--task', type=str, help ='path to log files', default='classification')
@@ -72,43 +72,44 @@ def parse_config():
         new_config.data.feature_path = args.feature_path
 
 
-    if not args.test and not args.explain:
-            if os.path.exists(args.log_path):
-                overwrite = False
-                if args.ni:
-                    overwrite = True
-                else:
-                    response = input("Folder already exists. Overwrite? (Y/N)")
-                    if response.upper() == "Y":
-                        overwrite = True
+    # if not args.test and not args.explain:
+    #     if not args.resume_training:
+    #         if os.path.exists(args.log_path):
+    #             overwrite = False
+    #             if args.ni:
+    #                 overwrite = True
+    #             else:
+    #                 response = input("Folder already exists. Overwrite? (Y/N)")
+    #                 if response.upper() == "Y":
+    #                     overwrite = True
+    #
+    #             if overwrite:
+    #                 shutil.rmtree(args.log_path)
+    #                 shutil.rmtree(tb_path)
+    #                 os.makedirs(args.log_path)
+    #                 if os.path.exists(tb_path):
+    #                     shutil.rmtree(tb_path)
+    #             else:
+    #                 print("Folder exists. Program halted.")
+    #                 sys.exit(0)
+    #         else:
+    #             os.makedirs(args.log_path)
 
-                if overwrite:
-                    shutil.rmtree(args.log_path)
-                    shutil.rmtree(tb_path)
-                    os.makedirs(args.log_path)
-                    if os.path.exists(tb_path):
-                        shutil.rmtree(tb_path)
-                else:
-                    print("Folder exists. Program halted.")
-                    sys.exit(0)
-            else:
-                os.makedirs(args.log_path)
 
-
-    if not args.ni:
+        if not args.ni:
             new_config.tb_logger = tb.SummaryWriter(log_dir=tb_path)
-    else:
+        else:
             new_config.tb_logger = None
         # setup logger
-    level = getattr(logging, args.verbose.upper(), None)
-    if not isinstance(level, int):
-        raise ValueError("level {} not supported".format(args.verbose))
+        level = getattr(logging, args.verbose.upper(), None)
+        if not isinstance(level, int):
+            raise ValueError("level {} not supported".format(args.verbose))
 
         handler1 = logging.StreamHandler()
         handler2 = logging.FileHandler(os.path.join(args.log_path, "{}.txt".format(args.task_name)))
         formatter = logging.Formatter(
-                "%(levelname)s - %(filename)s - %(asctime)s - %(message)s"
-            )
+            "%(levelname)s - %(filename)s - %(asctime)s - %(message)s"
+        )
         handler1.setFormatter(formatter)
         handler2.setFormatter(formatter)
         logger = logging.getLogger()
@@ -118,22 +119,22 @@ def parse_config():
 
     else:
 
-            level = getattr(logging, args.verbose.upper(), None)
-            if not isinstance(level, int):
-                raise ValueError("level {} not supported".format(args.verbose))
+        level = getattr(logging, args.verbose.upper(), None)
+        if not isinstance(level, int):
+            raise ValueError("level {} not supported".format(args.verbose))
 
-            handler1 = logging.StreamHandler()
-            # saving test metrics to a .txt file
-            handler2 = logging.FileHandler(os.path.join(args.log_path, "testmetrics.txt"))
-            formatter = logging.Formatter(
-                "%(levelname)s - %(filename)s - %(asctime)s - %(message)s"
-            )
-            handler1.setFormatter(formatter)
-            handler2.setFormatter(formatter)
-            logger = logging.getLogger()
-            logger.addHandler(handler1)
-            logger.addHandler(handler2)
-            logger.setLevel(level)
+        handler1 = logging.StreamHandler()
+        # saving test metrics to a .txt file
+        handler2 = logging.FileHandler(os.path.join(args.log_path, "testmetrics.txt"))
+        formatter = logging.Formatter(
+            "%(levelname)s - %(filename)s - %(asctime)s - %(message)s"
+        )
+        handler1.setFormatter(formatter)
+        handler2.setFormatter(formatter)
+        logger = logging.getLogger()
+        logger.addHandler(handler1)
+        logger.addHandler(handler2)
+        logger.setLevel(level)
 
     return new_config, logger
 

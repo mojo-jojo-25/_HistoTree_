@@ -20,6 +20,34 @@ from scipy.spatial.distance import cdist
 from scipy.spatial.distance import euclidean
 from sklearn.cluster import AgglomerativeClustering
 
+class Attn_Net_Gated(nn.Module):
+    def __init__(self, L=1024, D=256, dropout=False, n_classes=1):
+        super(Attn_Net_Gated, self).__init__()
+        self.attention_a = [
+            nn.Linear(L, D),
+            nn.Tanh()]
+
+        self.attention_b = [nn.Linear(L, D),
+                            nn.Sigmoid()]
+        if dropout:
+            self.attention_a.append(nn.Dropout(0.25))
+            self.attention_b.append(nn.Dropout(0.25))
+
+        self.attention_a = nn.Sequential(*self.attention_a)
+        self.attention_b = nn.Sequential(*self.attention_b)
+
+        self.attention_c = nn.Linear(D, n_classes)
+
+    def forward(self, x):
+        a = self.attention_a(x)
+        b = self.attention_b(x)
+        A = a.mul(b)
+        A = self.attention_c(A)  # N x n_classes
+        return A, x
+
+
+
+
 class Classifier(nn.Module):
     def __init__(self, config, args):
         super(Classifier, self).__init__()
@@ -31,7 +59,8 @@ class Classifier(nn.Module):
         self.n_classes = args.n_class
         self.vis_folder = args.vis_folder
 
-        self._fc1 = nn.Sequential(nn.Linear(self.feature_dim, 512), nn.ReLU())
+        self._fc1 = nn.Sequential(nn.Linear(self.feature_dim, 1024), nn.ReLU())
+
 
         self.transformer = VisionTransformer(num_classes=self.n_classes, embed_dim=self.embed_dim)
 
@@ -50,9 +79,9 @@ class Classifier(nn.Module):
         self.explain = args.explain
 
         self.attention_head = nn.Sequential(
-            nn.Linear(self.embed_dim, self.embed_dim,),
+            nn.Linear(1024, self.embed_dim,),
             nn.Tanh(),
-            nn.Linear(self.embed_dim, 1),
+            nn.Linear(1024, 1),
             nn.Sigmoid(),
         )
 
@@ -60,9 +89,14 @@ class Classifier(nn.Module):
 
         X = node_feat
         X = self._fc1(X)
+
+
         X = mask.unsqueeze(2) * X
 
         X = self.conv1(X, adj, mask)
+
+
+
         s = self.pool1(X)
 
         X, adj, mc1, o1 = dense_mincut_pool(X, adj, s, mask)
@@ -81,7 +115,7 @@ class Classifier(nn.Module):
 
         weighted_instance_logits = attn * instance_logits
 
-        loss = mc1 + o1
+        loss = 0
 
         if self.explain:
 
@@ -214,14 +248,52 @@ class DTree(nn.Module):
         sorted_leaves = sorted(self.leaves, key=lambda x: x.index)
         self._leaf_map = {n.index: i for i, n in zip(range(self.num_leaves), sorted_leaves)}
 
-        self.attrib_pvec = nn.Parameter(cluster_centers, requires_grad=False)
+        self.attrib_pvec = nn.Parameter(cluster_centers, requires_grad=True)
+        #self.attrib_pvec = nn.Parameter(torch.randn(16, 1024), requires_grad=True)
+
         self.linkage_matrix = linkage_matrix
         self.prototype_map = nn.ParameterDict()
-        self.prototype_map = self.assign_prototypes_to_branches(self.linkage_matrix, self.attrib_pvec, init=True)
+        self._init_prototypes(self.linkage_matrix, self.attrib_pvec)
+
+
+    def _init_prototypes(self, linkage_matrix, initial_prototypes):
+        """Create and register all prototype parameters (only once)."""
+        num_samples = linkage_matrix.shape[0] + 1
+
+        for i in sorted(range(num_samples)):
+            key = str(i)
+            self.prototype_map[key] = nn.Parameter(
+                initial_prototypes[i].to(self.device), requires_grad=True
+            )
+
+        for branch_idx, (left_idx, right_idx, _, _) in enumerate(linkage_matrix, start=num_samples):
+            left_key = str(int(left_idx))
+            right_key = str(int(right_idx))
+            branch_key = str(branch_idx)
+
+            left_proto = self.prototype_map[left_key]
+            right_proto = self.prototype_map[right_key]
+            merged = self.merging_layer(left_proto, right_proto)
+
+            self.prototype_map[branch_key] = nn.Parameter(
+                merged.to(self.device), requires_grad=True
+            )
+
+    def update_prototype_embeddings(self):
+        """Refresh internal branch prototypes without breaking tracking."""
+        num_samples = self.linkage_matrix.shape[0] + 1
+
+        with torch.no_grad():
+            for branch_idx, (left_idx, right_idx, _, _) in enumerate(self.linkage_matrix, start=num_samples):
+                left = self.prototype_map[str(int(left_idx))]
+                right = self.prototype_map[str(int(right_idx))]
+
+                merged = self.merging_layer(left, right)
+                self.prototype_map[str(branch_idx)].copy_(merged)
 
     def forward(self, logits, patches, pool_map, attn_weights, training, **kwargs):
 
-        self.prototype_map = self.assign_prototypes_to_branches(self.linkage_matrix, self.attrib_pvec, init=False)
+        self.update_prototype_embeddings()
         kwargs['conv_net_output'] = tuple(chunk for chunk in self.attrib_pvec.chunk(self.num_prototypes, dim=0))
         kwargs['out_map'] = dict(self._out_map)
         kwargs['attn_weights'] = attn_weights
@@ -234,7 +306,7 @@ class DTree(nn.Module):
         return out
 
     def explain_internal(self, logits, patches, training, sizes, id, s_matrix, y, pool_map, prefix: str, **kwargs):
-            self.prototype_map = self.assign_prototypes_to_branches(self.linkage_matrix, self.attrib_pvec, init=False)
+            self.update_prototype_embeddings()
             kwargs['conv_net_output'] = self.attrib_pvec.chunk(self.num_prototypes, dim=0)
             kwargs['out_map'] = dict(self._out_map)
             kwargs['leaf_out_map'] = dict(self._leaf_map )
@@ -251,43 +323,6 @@ class DTree(nn.Module):
                                **kwargs)
             return keys
 
-    def assign_prototypes_to_branches(self, linkage_matrix, initial_prototypes, init):
-            """
-            Assign prototypes to branches based on the linkage matrix and initial prototypes.
-
-            Args:
-                linkage_matrix (ndarray): Linkage matrix from hierarchical clustering.
-                initial_prototypes (torch.Tensor): Prototypes for leaves, shape (N, 1024).
-                branch_indices (dict): Mapping of branches to their indices in the tree.
-
-            Returns:
-                prototype_map (dict): Mapping from branch indices to assigned prototypes.
-            """
-
-            num_samples = linkage_matrix.shape[0] + 1
-
-
-            if init:
-                for i in sorted(range(num_samples)):
-                    param_name = str(i)
-                    param = nn.Parameter(initial_prototypes[i].to(self.device), requires_grad=True)
-                    self.prototype_map[param_name] = param
-
-            for branch_idx, (left_idx, right_idx, _, _) in enumerate(linkage_matrix, start=num_samples):
-                left_key = str(int(left_idx))  # ✅ Ensure correct string conversion
-                right_key = str(int(right_idx))
-                branch_key = str(branch_idx)
-
-                left_prototype = self.prototype_map[left_key].to(self.device)
-                right_prototype = self.prototype_map[right_key].to(self.device)
-
-                #merged_prototype = self.merging_layer(left_prototype, right_prototype).to(self.device)
-                merged_prototype = (right_prototype + left_prototype) / 2
-
-                param = nn.Parameter(merged_prototype, requires_grad=True)
-                self.prototype_map[branch_key] = param
-
-            return self.prototype_map
 
     def _init_tree_recursive(self, linkage_matrix, proto_size, proto_dim, embed_dim):
             """

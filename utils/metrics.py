@@ -2,6 +2,39 @@
 # https://github.com/wkentaro/pytorch-fcn/blob/master/torchfcn/utils.py
 
 import numpy as np
+import torch
+
+def nll_loss(hazards, S, Y, c, alpha=0.4, eps=1e-7):
+    batch_size = len(Y)
+    Y = Y.view(batch_size, 1) # ground truth bin, 1,2,...,k
+    c = c.view(batch_size, 1).float() #censorship status, 0 or 1
+    if S is None:
+        S = torch.cumprod(1 - hazards, dim=1)
+
+    S_padded = torch.cat([torch.ones_like(c, device = 'cuda'), S], 1)
+
+    #S_padded = torch.cat([torch.ones(S.size(0), 1, device=S.device), S], dim=1)
+    # after padding, S(0) = S[1], S(1) = S[2], etc, h(0) = h[0]
+    #h[y] = h(1)
+    #S[1] = S(1)
+
+    Y = Y.long()  # Ensure Y is an integer tensor
+    Y = Y.clamp(0, S_padded.shape[1] - 1)  # Clamp indices for S_padded
+    Y_hazards = Y.clamp(0, hazards.shape[1] - 1)  # Clamp indices for hazards
+
+    uncensored_loss = -(1 - c) * (
+            torch.log(torch.gather(S_padded, 1, Y).clamp(min=eps)) +
+            torch.log(torch.gather(hazards, 1, Y_hazards).clamp(min=eps))
+    )
+
+    #uncensored_loss = -(1 - c) * (torch.log(torch.gather(S_padded, 1, Y).clamp(min=eps)) + torch.log(torch.gather(hazards, 1, Y).clamp(min=eps)))
+    censored_loss = - c * torch.log(torch.gather(S_padded, 1, Y+1).clamp(min=eps))
+    neg_l = censored_loss + uncensored_loss
+    loss = (1-alpha) * neg_l + alpha * uncensored_loss
+    loss = loss.mean()
+    return loss
+
+
 
 class ConfusionMatrix(object):
 

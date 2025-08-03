@@ -32,6 +32,22 @@ def seed_torch(seed, device):
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
 
+
+def log_prototypes(epoch, model, task_name,  save_dir="proto_logs"):
+        import os
+        proto_dir = os.path.join(save_dir, task_name)
+        os.makedirs(proto_dir, exist_ok=True)
+
+        dtree = model.module.tree if hasattr(model.module, "tree") else model.module
+        prototype_map = dtree.prototype_map
+
+        sorted_keys = sorted(prototype_map.keys(), key=lambda x: int(x))
+        protos = [prototype_map[k].detach().cpu().unsqueeze(0) for k in sorted_keys]
+        proto_tensor = torch.cat(protos, dim=0)  # [num_prototypes, feature_dim]
+
+
+        torch.save(proto_tensor, os.path.join(save_dir, f"epoch_{epoch:03d}.pt"))
+
 class HistoTree(object):
     def __init__(self, args, config, device=None):
 
@@ -56,8 +72,10 @@ class HistoTree(object):
         self.n_class = args.n_class
 
         self.model_path = os.path.join(args.exp, 'saved_models')
+        self.proto_path = os.path.join(args.exp, 'proto_logs')
         if not os.path.exists(self.model_path):
             os.makedirs(self.model_path)
+            os.makedirs(self.proto_path)
 
         self.device = device
 
@@ -128,6 +146,8 @@ class HistoTree(object):
             self.model = self.model.cuda()
 
         print (os.path.join(self.model_path, "{}.pth".format(self.task_name)))
+
+
 
     def training(self):
 
@@ -216,6 +236,7 @@ class HistoTree(object):
                         c_index = torch.tensor((c_index))
 
                         if epoch % config.training.logging_freq == 0:
+                                                 log_prototypes(epoch, model=self.model, save_dir= self.proto_path, task_name = self.task_name)
                                                  logging.info("EPOCH: {},  "
                                                               "training loss: {}, "
                                                               "c_index :{}".format(epoch+1,
@@ -299,6 +320,7 @@ class HistoTree(object):
                             optimizer.step()
 
                             lr_scheduler.step()
+
 
                             train_loss += loss
                             total += 1

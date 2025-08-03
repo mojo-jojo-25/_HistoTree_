@@ -71,11 +71,11 @@ def eval_transforms(pretrained=False):
     return trnsfrms_val
 
 
-class GraphDataset(data.Dataset):
+class Surv_GraphDataset(data.Dataset):
     """input and label image dataset"""
 
     def __init__(self, root, ids, feature_dim, dataset, target_patch_size=-1):
-        super(GraphDataset, self).__init__()
+        super(Surv_GraphDataset, self).__init__()
         """
         Args:
 
@@ -86,19 +86,19 @@ class GraphDataset(data.Dataset):
         self.ids = ids
 
         self.dataset = dataset
-
         self.feature_dim = feature_dim
 
     def __getitem__(self, index):
         sample = {}
         info = self.ids[index].replace('\n', '')
-        file_name, label = info.split(' ')[0], info.split(' ')[1],
-
+        file_name, label,t, c  = info.split(' ')[0], info.split(' ')[1],  info.split(' ')[2],  info.split(' ')[3]
 
         file_path = self.root + 'graphs/simclr_files/'  # _resnet_with
 
         sample['label'] = float(label)
         sample['id'] = file_name
+        sample['t'] = float(t)
+        sample['c'] = float(c)
 
         # feature_path = os.path.join(self.root, file_name, 'features.pt')
         feature_path = os.path.join(file_path, file_name, 'features.pt')

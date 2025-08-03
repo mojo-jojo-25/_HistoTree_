@@ -96,7 +96,7 @@ if __name__ == '__main__':
     parser.add_argument('--path_file', type=str, default='survival_rcc_files/val_0.txt', help='')
     parser.add_argument('--path_WSI', type=str, default='', help='')
     parser.add_argument('--path_graph', type=str,
-                        default= 'graphs/simclr_files/', help='')
+                        default= 'rcc/graphs/simclr_files/', help='')
     parser.add_argument('--vis_folder', type=str,
                         default= 'surv_rcc/', help='')
     parser.add_argument('--config_file', type=str,

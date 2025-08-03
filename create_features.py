@@ -153,7 +153,7 @@ def compute_feats( bags_list, model, data_slide_dir, save_path):
             continue
 
         dataset = Whole_Slide_Bag_FP(file_path=bags_list[i],wsi=wsi, target_patch_size=224, custom_transforms=transform)
-        dataloader = DataLoader(dataset=dataset, batch_size=512, collate_fn=collate_features, drop_last=False, shuffle=False)
+        dataloader = DataLoader(dataset=dataset, batch_size=256, collate_fn=collate_features, drop_last=False, shuffle=False)
 
         wsi_coords=[]
         wsi_feats=[]

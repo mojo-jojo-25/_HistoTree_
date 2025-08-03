@@ -48,6 +48,8 @@ class GCB_Simple_Surv(nn.Module):
             x = self.norm(x)
             x = self.activation(x)
 
+
+
             pooled_x_mean = torch.mean(x, dim=1, keepdim=True)
             pooled_x_mean = pooled_x_mean.expand(-1, patches.size(1), -1)
             x = pooled_x_mean + patches

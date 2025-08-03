@@ -32,6 +32,20 @@ class Leaf(Node):
 
         node_attr.setdefault((self, 'pa'), torch.ones(batch_size, device=patches.device))
 
+
+
+        # prototype_map = kwargs['prototype_map']
+        # proto = prototype_map[str(self.index)]  # [D]
+        # if proto.dim() == 1:
+        #     proto = proto.unsqueeze(0)  # [1, D]
+        # proto = proto.expand(batch_size, -1)  # [B, D]
+        #
+        # proto_exp = proto.unsqueeze(1)  # [B, 1, D]
+        # scores = F.cosine_similarity(patches, proto_exp, dim=-1)  # [B, N]
+        # weights = F.softmax(scores, dim=1)  # [B, N]
+        # weighted_patches = patches * weights.unsqueeze(-1)
+
+
         tree_logits = self.pred(patches)
         self.dists = logits + tree_logits
 
