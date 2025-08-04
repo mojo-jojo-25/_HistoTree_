@@ -164,11 +164,8 @@ class HistoTree(object):
         if self.task != 'survival':
             self.criterion = nn.CrossEntropyLoss()
 
-        if self.task == 'survival':
-            optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=5e-4)
-        else:
-            optimizer = torch.optim.RAdam(model.parameters(), lr=learning_rate, weight_decay=5e-4)
-        lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[20, 100], gamma=0.1)
+
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=5e-4)
 
 
         min_valid_loss = np.inf

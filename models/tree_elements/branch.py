@@ -104,12 +104,11 @@ class Branch(Node):
 
             A = torch.bmm(Q, proto.permute(0, 2, 1))/torch.sqrt(torch.tensor(Q.shape[2], dtype=torch.float32, device='cuda'))
 
-            Y_prob = F.sigmoid(A/20)
+            Y_prob = F.sigmoid(A)
 
-            if task == 'survival':
-                self.maxim = F.adaptive_avg_pool2d(Y_prob, (1, 1)).squeeze(-1)
-            else:
-                self.maxim = F.adaptive_max_pool2d(Y_prob, (1, 1)).squeeze(-1)
+
+            self.maxim = F.adaptive_avg_pool2d(Y_prob, (1, 1)).squeeze(-1)
+
 
             to_left = self.maxim
 
